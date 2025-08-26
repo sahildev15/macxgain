@@ -15,12 +15,14 @@ class _SplashScreenState extends State<SplashScreen>
   late AnimationController _textController;
   late AnimationController _featureController;
   late AnimationController _loadingController;
+  late AnimationController _particleController;
   
   late Animation<double> _logoScale;
   late Animation<double> _logoRotation;
   late Animation<double> _textOpacity;
   late Animation<double> _featureOpacity;
   late Animation<double> _loadingOpacity;
+  late Animation<double> _particleAnimation;
 
   @override
   void initState() {
@@ -48,6 +50,11 @@ class _SplashScreenState extends State<SplashScreen>
       vsync: this,
     );
     
+    _particleController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    );
+    
     // Initialize animations
     _logoScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
@@ -69,11 +76,16 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _loadingController, curve: Curves.easeIn),
     );
     
+    _particleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _particleController, curve: Curves.linear),
+    );
+    
     // Start animations in sequence
     _startAnimations();
   }
   
   void _startAnimations() async {
+    _particleController.repeat(); // Start particle animation immediately and repeat
     await _logoController.forward();
     await _textController.forward();
     await _featureController.forward();
@@ -86,6 +98,7 @@ class _SplashScreenState extends State<SplashScreen>
     _textController.dispose();
     _featureController.dispose();
     _loadingController.dispose();
+    _particleController.dispose();
     super.dispose();
   }
 
@@ -105,9 +118,21 @@ class _SplashScreenState extends State<SplashScreen>
             ],
           ),
         ),
-        child: SafeArea(
-          child: Column(
-            children: [
+        child: Stack(
+          children: [
+            // Animated particles background
+            AnimatedBuilder(
+              animation: _particleAnimation,
+              builder: (context, child) {
+                return CustomPaint(
+                  painter: ParticlePainter(_particleAnimation.value),
+                  size: Size.infinite,
+                );
+              },
+            ),
+            SafeArea(
+              child: Column(
+                children: [
               // Top section with logo and title
               Expanded(
                 flex: 3,
@@ -146,10 +171,32 @@ class _SplashScreenState extends State<SplashScreen>
                                   ),
                                 ],
                               ),
-                              child: const Icon(
-                                Icons.trending_up,
-                                size: 60,
-                                color: Colors.white,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.psychology,
+                                    size: 50,
+                                    color: Colors.white,
+                                  ),
+                                  Positioned(
+                                    right: 8,
+                                    top: 8,
+                                    child: Container(
+                                      width: 16,
+                                      height: 16,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.green,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.trending_up,
+                                        size: 10,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
@@ -167,7 +214,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Transform.translate(
                             offset: Offset(0, 20 * (1 - _textOpacity.value)),
                             child: const Text(
-                              'Macxgain',
+                              'Trade with AI',
                               style: TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.bold,
@@ -190,7 +237,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Transform.translate(
                             offset: Offset(0, 15 * (1 - _textOpacity.value)),
                             child: Text(
-                              'Professional Trading Platform',
+                              'AI-Powered Trading Intelligence',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.white.withValues(alpha: 0.8),
@@ -216,18 +263,18 @@ class _SplashScreenState extends State<SplashScreen>
                               child: Column(
                                 children: [
                                   _buildFeatureItem(
-                                    icon: Icons.analytics,
-                                    text: 'Advanced Analytics',
+                                    icon: Icons.psychology,
+                                    text: 'AI Market Analysis',
                                   ),
                                   const SizedBox(height: 15),
                                   _buildFeatureItem(
-                                    icon: Icons.security,
-                                    text: 'Secure Trading',
+                                    icon: Icons.auto_awesome,
+                                    text: 'Smart Predictions',
                                   ),
                                   const SizedBox(height: 15),
                                   _buildFeatureItem(
-                                    icon: Icons.speed,
-                                    text: 'Real-time Data',
+                                    icon: Icons.rocket_launch,
+                                    text: 'Automated Trading',
                                   ),
                                 ],
                               ),
@@ -279,7 +326,7 @@ class _SplashScreenState extends State<SplashScreen>
                           child: Transform.translate(
                             offset: Offset(0, 10 * (1 - _loadingOpacity.value)),
                             child: Text(
-                              'Loading...',
+                              'Initializing AI Engine...',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.7),
@@ -294,8 +341,10 @@ class _SplashScreenState extends State<SplashScreen>
                   ],
                 ),
               ),
-            ],
-          ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -345,4 +394,51 @@ class _SplashScreenState extends State<SplashScreen>
       ],
     );
   }
+}
+
+class ParticlePainter extends CustomPainter {
+  final double animationValue;
+  
+  ParticlePainter(this.animationValue);
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF00d4ff).withValues(alpha: 0.1)
+      ..style = PaintingStyle.fill;
+    
+    // Create floating particles
+    for (int i = 0; i < 20; i++) {
+      final x = (size.width * (i * 0.1 + animationValue * 0.5)) % size.width;
+      final y = (size.height * (i * 0.15 + animationValue * 0.3)) % size.height;
+      final radius = 2.0 + (i % 3);
+      
+      canvas.drawCircle(
+        Offset(x, y),
+        radius,
+        paint..color = const Color(0xFF00d4ff).withValues(alpha: 0.1 + (i % 3) * 0.05),
+      );
+    }
+    
+    // Add some connecting lines for a tech feel
+    final linePaint = Paint()
+      ..color = const Color(0xFF00d4ff).withValues(alpha: 0.05)
+      ..strokeWidth = 1;
+    
+    for (int i = 0; i < 10; i++) {
+      final startX = (size.width * (i * 0.2 + animationValue * 0.1)) % size.width;
+      final startY = (size.height * (i * 0.3 + animationValue * 0.2)) % size.height;
+      final endX = (size.width * (i * 0.25 + animationValue * 0.15)) % size.width;
+      final endY = (size.height * (i * 0.35 + animationValue * 0.25)) % size.height;
+      
+      canvas.drawLine(
+        Offset(startX, startY),
+        Offset(endX, endY),
+        linePaint,
+      );
+    }
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
